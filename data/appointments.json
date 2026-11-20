@@ -1,0 +1,52 @@
+[
+  {
+    "id": "APT-SYN-001",
+    "patient_id": "PAT-SYN-001",
+    "status": "scheduled",
+    "starts_at": "2026-12-02T09:30:00Z",
+    "ends_at": "2026-12-02T10:00:00Z",
+    "reason": "Synthetic intake check-in demonstration",
+    "provider_name": "Dr. Robin Example",
+    "location_label": "Synthetic Clinic A"
+  },
+  {
+    "id": "APT-SYN-002",
+    "patient_id": "PAT-SYN-001",
+    "status": "completed",
+    "starts_at": "2026-10-14T14:00:00Z",
+    "ends_at": "2026-10-14T14:30:00Z",
+    "reason": "Synthetic follow-up demonstration",
+    "provider_name": "Dr. Robin Example",
+    "location_label": "Synthetic Clinic A"
+  },
+  {
+    "id": "APT-SYN-003",
+    "patient_id": "PAT-SYN-002",
+    "status": "scheduled",
+    "starts_at": "2026-12-09T11:00:00Z",
+    "ends_at": "2026-12-09T11:45:00Z",
+    "reason": "Synthetic referral handoff demonstration",
+    "provider_name": "Dr. Casey Illustrative",
+    "location_label": "Synthetic Clinic B"
+  },
+  {
+    "id": "APT-SYN-004",
+    "patient_id": "PAT-SYN-002",
+    "status": "cancelled",
+    "starts_at": "2026-11-05T16:00:00Z",
+    "ends_at": "2026-11-05T16:20:00Z",
+    "reason": "Synthetic scheduling demo (cancelled)",
+    "provider_name": "Dr. Casey Illustrative",
+    "location_label": "Synthetic Clinic B"
+  },
+  {
+    "id": "APT-SYN-005",
+    "patient_id": "PAT-SYN-003",
+    "status": "scheduled",
+    "starts_at": "2026-12-16T08:45:00Z",
+    "ends_at": "2026-12-16T09:15:00Z",
+    "reason": "Synthetic records review demonstration",
+    "provider_name": "Dr. Sam Mock",
+    "location_label": "Synthetic Clinic A"
+  }
+]

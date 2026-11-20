@@ -1,9 +1,17 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { registerAppointmentTools } from "./tools/appointment.tools.js";
+import { registerLabResultTools } from "./tools/lab-result.tools.js";
+import { registerPatientTools } from "./tools/patient.tools.js";
+import { registerWorkflowTools } from "./tools/workflow.tools.js";
 
-// No tools, resources or prompts are registered in Stage 1.
-// The SDK still answers the standard MCP `ping` request automatically.
-const server = new McpServer({ name: "integration-assistant", version: "0.1.0" });
+// Only read-only tools over synthetic data are registered in Stage 2.
+// Resources, prompts and write operations are intentionally absent.
+const server = new McpServer({ name: "integration-assistant", version: "0.2.0" });
+registerPatientTools(server);
+registerAppointmentTools(server);
+registerLabResultTools(server);
+registerWorkflowTools(server);
 
 async function shutdown(signal: string): Promise<void> {
   try {

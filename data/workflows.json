@@ -1,0 +1,37 @@
+[
+  {
+    "id": "WF-SYN-001",
+    "patient_id": "PAT-SYN-001",
+    "appointment_id": "APT-SYN-001",
+    "lab_result_ids": ["LAB-SYN-001", "LAB-SYN-002"],
+    "status": "draft",
+    "title": "Synthetic intake handoff example",
+    "description": "Example workflow record only. No workflow execution is implemented.",
+    "steps": ["synthetic_intake_review", "synthetic_handoff_preparation"],
+    "created_at": "2026-11-12T09:00:00Z",
+    "updated_at": "2026-11-15T11:30:00Z"
+  },
+  {
+    "id": "WF-SYN-002",
+    "patient_id": "PAT-SYN-002",
+    "appointment_id": "APT-SYN-003",
+    "lab_result_ids": ["LAB-SYN-003", "LAB-SYN-004", "LAB-SYN-005"],
+    "status": "awaiting_review",
+    "title": "Synthetic referral coordination example",
+    "description": "Example workflow record only. No approval or rejection is implemented.",
+    "steps": ["synthetic_referral_preparation", "synthetic_review_queue"],
+    "created_at": "2026-11-13T10:00:00Z",
+    "updated_at": "2026-11-16T14:15:00Z"
+  },
+  {
+    "id": "WF-SYN-003",
+    "patient_id": "PAT-SYN-003",
+    "lab_result_ids": [],
+    "status": "draft",
+    "title": "Synthetic records review example",
+    "description": "Example workflow record only. No lab results are attached in this example.",
+    "steps": ["synthetic_records_check"],
+    "created_at": "2026-11-14T08:30:00Z",
+    "updated_at": "2026-11-14T08:30:00Z"
+  }
+]

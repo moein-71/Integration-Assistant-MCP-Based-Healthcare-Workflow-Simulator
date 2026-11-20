@@ -1,0 +1,62 @@
+[
+  {
+    "id": "LAB-SYN-001",
+    "patient_id": "PAT-SYN-001",
+    "test_name": "Demo Hemoglobin",
+    "result_value": 12.4,
+    "unit": "g/dL",
+    "reference_range": "demo range 12.0-15.0 g/dL",
+    "status": "final",
+    "collected_at": "2026-10-12T08:10:00Z",
+    "reported_at": "2026-10-12T13:20:00Z",
+    "note": "Synthetic demonstration value; not for clinical use."
+  },
+  {
+    "id": "LAB-SYN-002",
+    "patient_id": "PAT-SYN-001",
+    "test_name": "Demo Glucose",
+    "result_value": 91,
+    "unit": "mg/dL",
+    "reference_range": "demo range 70-100 mg/dL",
+    "status": "final",
+    "collected_at": "2026-10-12T08:10:00Z",
+    "reported_at": "2026-10-12T13:25:00Z",
+    "note": "Synthetic demonstration value; not for clinical use."
+  },
+  {
+    "id": "LAB-SYN-003",
+    "patient_id": "PAT-SYN-002",
+    "test_name": "Demo Potassium",
+    "result_value": 4.1,
+    "unit": "mmol/L",
+    "reference_range": "demo range 3.5-5.0 mmol/L",
+    "status": "final",
+    "collected_at": "2026-11-01T07:40:00Z",
+    "reported_at": "2026-11-01T12:00:00Z",
+    "note": "Synthetic demonstration value; not for clinical use."
+  },
+  {
+    "id": "LAB-SYN-004",
+    "patient_id": "PAT-SYN-002",
+    "test_name": "Demo Vitamin D",
+    "result_value": 28,
+    "unit": "ng/mL",
+    "reference_range": "demo range 20-50 ng/mL",
+    "status": "preliminary",
+    "collected_at": "2026-11-01T07:40:00Z",
+    "reported_at": "2026-11-02T09:00:00Z",
+    "note": "Synthetic demonstration value; not for clinical use."
+  },
+  {
+    "id": "LAB-SYN-005",
+    "patient_id": "PAT-SYN-002",
+    "test_name": "Demo Panel B",
+    "result_value": 7.2,
+    "unit": "demo-unit",
+    "reference_range": "demo range 6.0-8.0 demo-unit",
+    "status": "final",
+    "collected_at": "2026-11-10T10:05:00Z",
+    "reported_at": "2026-11-10T15:30:00Z",
+    "note": "Synthetic demonstration value; not for clinical use."
+  }
+]
