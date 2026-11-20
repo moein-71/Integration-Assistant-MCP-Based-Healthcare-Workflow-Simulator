@@ -8,11 +8,15 @@ const EXPECTED_TOOLS = [
   "list_appointments",
   "get_lab_results",
   "get_workflow",
-  "list_workflows"
+  "list_workflows",
+  "create_workflow_draft",
+  "validate_workflow",
+  "submit_workflow_for_approval",
+  "revise_workflow_draft"
 ];
 
 describe("MCP read-only tools over stdio", () => {
-  test("server is a separate process and exposes exactly the six expected tools", async () => {
+  test("server is a separate process and exposes exactly the ten expected tools", async () => {
     await withClient(async (client, transport) => {
       expect(transport.pid, "server must run as a separate child process").not.toBeNull();
       const { tools } = await client.listTools();
@@ -115,6 +119,13 @@ describe("MCP read-only tools over stdio", () => {
         arguments: { patient_id: "PAT-SYN-003" }
       });
       expect(dataOf<LabResult[]>(empty)).toEqual([]);
+
+      const unknown = await client.callTool({
+        name: "get_lab_results",
+        arguments: { patient_id: "PAT-SYN-999" }
+      });
+      expect(isErrorOf(unknown)).toBe(true);
+      expect(textOf(unknown)).toContain("not found");
     });
   }, 30_000);
 
@@ -123,7 +134,7 @@ describe("MCP read-only tools over stdio", () => {
       const ok = await client.callTool({ name: "get_workflow", arguments: { workflow_id: "WF-SYN-002" } });
       const workflow = dataOf<Workflow>(ok);
       expect(workflow.id).toBe("WF-SYN-002");
-      expect(workflow.status).toBe("awaiting_review");
+      expect(workflow.status).toBe("PENDING_APPROVAL");
 
       const missing = await client.callTool({ name: "get_workflow", arguments: { workflow_id: "WF-SYN-999" } });
       expect(isErrorOf(missing)).toBe(true);
@@ -134,14 +145,14 @@ describe("MCP read-only tools over stdio", () => {
   test("list_workflows supports the status filter", async () => {
     await withClient(async client => {
       const all = await client.callTool({ name: "list_workflows", arguments: {} });
-      expect(dataOf<Workflow[]>(all).length).toBe(3);
+      expect(dataOf<Workflow[]>(all).length).toBe(4);
 
-      const drafts = await client.callTool({ name: "list_workflows", arguments: { status: "draft" } });
+      const drafts = await client.callTool({ name: "list_workflows", arguments: { status: "DRAFT" } });
       const draftList = dataOf<Workflow[]>(drafts);
       expect(draftList.length).toBe(2);
-      expect(draftList.every(w => w.status === "draft")).toBe(true);
+      expect(draftList.every(w => w.status === "DRAFT")).toBe(true);
 
-      const none = await client.callTool({ name: "list_workflows", arguments: { status: "completed" } });
+      const none = await client.callTool({ name: "list_workflows", arguments: { status: "APPROVED" } });
       expect(dataOf<Workflow[]>(none)).toEqual([]);
     });
   }, 30_000);

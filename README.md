@@ -1,118 +1,127 @@
 # Integration Assistant — MCP-Based Healthcare Workflow Simulator
 
-A TypeScript MCP server that demonstrates read-only access to **synthetic**
-healthcare integration data over stdio.
+A TypeScript MCP server that demonstrates synthetic healthcare integration workflows
+over stdio. **All patients, appointments, lab-style results, and workflows are
+fictional.** See `data/README.md`.
 
-## Current status (Stage 2)
+## Current status (Stage 3)
 
-Implemented:
+The server exposes **exactly 10 MCP tools**: six read-only tools from Stage 2 plus
+four workflow lifecycle tools added in this stage.
 
-- A minimal MCP server (`integration-assistant`, version `0.2.0`) using the official
-  `@modelcontextprotocol/sdk` with `StdioServerTransport`.
-- A small synthetic dataset in local JSON files, accessed through a simple
-  repository layer.
-- **Exactly six read-only MCP tools** (listed below).
-- A real MCP client smoke script and Vitest tests that exercise the server through
-  real stdio client/server communication.
+**Not implemented:** human approval/rejection (planned as a separate Admin CLI),
+workflow execution or publishing, MCP resources or prompts, authentication, databases,
+and external healthcare integrations.
 
-**All tools are read-only.** They only read JSON files and never modify them.
+## Workflow lifecycle
 
-**Not implemented yet:** workflow creation, drafts, validation, submission,
-approval, rejection, revision, workflow execution/publishing, any other write
-operations, MCP resources or prompts, authentication/authorization, databases, or
-external healthcare APIs. No patient/appointment/lab data is written by this server.
+The only workflow states are `DRAFT`, `PENDING_APPROVAL`, `APPROVED`, and `REJECTED`.
+
+```text
+DRAFT
+  |
+  | submit_workflow_for_approval (MCP)
+  v
+PENDING_APPROVAL
+  |                 |
+  | Admin approve   | Admin reject   <-- future Admin CLI, not available via MCP
+  v                 v
+APPROVED          REJECTED
+                     |
+                     | revise_workflow_draft (MCP)
+                     v
+                   DRAFT
+```
+
+MCP can perform only `DRAFT -> PENDING_APPROVAL` and `REJECTED -> DRAFT`. Every other
+transition is rejected with a clear error. Approval and rejection are deliberately
+**not** exposed through MCP; they will be added later through a separate human Admin
+CLI. The simulator never executes or publishes workflows — an `APPROVED` status is
+only a state value in synthetic fixture data.
+
+### Validation vs submission
+
+- `validate_workflow` is strictly read-only. It reports `valid`, `errors`, `warnings`,
+  and `workflow_id`; it never writes data, changes timestamps, or changes state.
+  A prior validation result is never treated as a guarantee.
+- `submit_workflow_for_approval` always **revalidates the latest persisted record**
+  before changing `DRAFT` to `PENDING_APPROVAL`. This prevents submitting a workflow
+  whose references were changed (or became invalid) after an earlier successful
+  validation. Invalid drafts stay in `DRAFT` and return the validation errors.
+- `revise_workflow_draft` works only on `REJECTED` workflows. It preserves the ID and
+  creation timestamp, updates the modification timestamp, clears obsolete validation
+  results, retains rejection context in history, and returns to `DRAFT` without
+  submitting automatically.
+
+Earlier fixture statuses were migrated as follows: `draft` → `DRAFT`,
+`awaiting_review` → `PENDING_APPROVAL`, and `completed` → `APPROVED`. The last mapping
+is a fixture migration only; it does not imply that any workflow was executed. The old
+values are no longer active workflow states.
 
 ## Architecture
 
 ```text
-data/                          Synthetic JSON dataset (read-only at runtime)
-  patients.json                3 patients
-  appointments.json            5 appointments
-  lab-results.json             5 lab-style results
-  workflows.json               3 example workflows
-  README.md                    Synthetic-data declaration
-
-src/domain/                    Explicit entity types and lookup result type
-src/repositories/              JSON file access only (no MCP code)
-src/services/                  Composition of patient/appointment/lab/workflow data
-src/server/                    MCP wiring
-  index.ts                     Server, stdio transport, tool registration
-  tools/                       Tool schemas, descriptions and result formatting
-src/client/smoke.ts            Real MCP client smoke script
-
-tests/repositories/            Data access and referential-integrity tests
-tests/smoke/                   Real MCP stdio tests (tools and ping)
-tests/support/                 Test client helper
+data/                         Synthetic JSON dataset (production fixtures)
+src/domain/                   Entity types, lifecycle policy, results
+src/repositories/             JSON file access, atomic writes, write serialisation
+src/services/                 Validation and workflow lifecycle operations
+src/server/tools/             MCP tool registration, schemas and result formatting
+src/client/smoke.ts           Real MCP client smoke script
+tests/repositories/           Data access and integrity tests
+tests/services/               Workflow lifecycle unit/integration tests
+tests/smoke/                  Real MCP stdio tests
+tests/support/                Isolated-data test client helper
 ```
 
-Repositories resolve `data/` relative to their own module URL, so the server works
-from any current working directory and from both TypeScript source and the compiled
-`dist/` output. Missing files and malformed JSON produce clear errors that do not
-expose local filesystem paths. Unknown identifiers return explicit not-found results;
-no records are ever fabricated.
+Persistence uses the same JSON files as the read tools. Writes go to a temporary file
+and are renamed into place (atomic replace). Paths are module-relative by default, so
+no particular working directory is required. Tests set `MCP_DATA_DIR` to an isolated
+temporary copy of the fixtures, so checked-in data is never modified and parallel
+tests cannot interfere.
 
-## Synthetic data disclaimer
+## Available tools
 
-All names, IDs, providers, locations, values, and timestamps are **fictional** and
-exist only for demonstration. There is no real patient information, no real personal
-identifiers, and no clinical advice or diagnosis. Lab-style values are illustrative
-only. See `data/README.md`.
-
-## Available tools (all read-only)
+Read-only (Stage 2):
 
 | Tool | Input | Returns |
 | --- | --- | --- |
-| `get_patient` | `patient_id` (required string) | One synthetic patient record, or a not-found error |
-| `get_patient_summary` | `patient_id` (required string) | Patient with recorded appointments, lab-style results, and an explicit `missing_information` list |
-| `list_appointments` | `patient_id` (optional string), `status` (optional: `scheduled` / `completed` / `cancelled`) | JSON array of matching appointments; empty array if none |
-| `get_lab_results` | `patient_id` (required string) | JSON array of lab-style result details; empty array if none |
-| `get_workflow` | `workflow_id` (required string) | One static example workflow, or a not-found error |
-| `list_workflows` | `status` (optional: `draft` / `awaiting_review` / `completed`) | JSON array of matching example workflows; empty array if none |
+| `get_patient` | `patient_id` (required) | One synthetic patient or not-found error |
+| `get_patient_summary` | `patient_id` (required) | Patient with appointments/lab results and explicit missing-information list |
+| `list_appointments` | `patient_id?`, `status?` (`scheduled`/`completed`/`cancelled`) | Matching appointments; empty array if none |
+| `get_lab_results` | `patient_id` (required) | Not-found error for unknown patient; empty array for existing patient with no results |
+| `get_workflow` | `workflow_id` (required) | One workflow including status, validation metadata and history |
+| `list_workflows` | `status?` (`DRAFT`/`PENDING_APPROVAL`/`APPROVED`/`REJECTED`) | Matching workflows; empty array if none |
 
-Tool results are JSON text with a `notice` field (synthetic-data disclaimer) and a
-`data` field. Domain errors use the MCP `isError: true` convention with a readable
-message. Input validation is performed by the SDK from the registered Zod schemas.
+Workflow lifecycle (Stage 3):
 
-There is intentionally **no `list_patients` tool** and no write tool.
+| Tool | Input | Returns |
+| --- | --- | --- |
+| `create_workflow_draft` | `name`, `patient_id`, `source_system`, `destination_system`, `template`, `steps`, optional `appointment_ids`, `lab_result_ids`, `description` | Created workflow in `DRAFT` with generated ID |
+| `validate_workflow` | `workflow_id` | `{ valid, errors, warnings, workflow_id }` — no side effects |
+| `submit_workflow_for_approval` | `workflow_id` | Updated `PENDING_APPROVAL` workflow, or validation/state errors |
+| `revise_workflow_draft` | `workflow_id` plus the editable workflow fields, optional `revision_note` | Revised workflow in `DRAFT` |
 
-## Prerequisites
+Supported systems: `EHR_SYNTH`, `LAB_SYNTH`, `SCHEDULER_SYNTH`, `REFERRAL_SYNTH`.
+Templates: `INTAKE_HANDOFF`, `LAB_REVIEW`, `REFERRAL_COORDINATION`.
+Every referenced patient, appointment and lab result must exist in the synthetic data
+and belong to the specified patient.
 
-- Node.js >= 18 (verified on Node 26)
-- npm
-- No global TypeScript installation is required.
+Tool results use a `{ notice, data }` JSON envelope; errors use MCP `isError: true`
+with readable messages. No stack traces or local paths are exposed.
 
-## Installation
+## Prerequisites and commands
+
+Node.js >= 18 (verified on Node 26), npm, no global TypeScript needed.
 
 ```bash
 npm install
+npm run typecheck
+npm run build
+npm test
+npm run smoke
+npm run server   # run the MCP server over stdio (normally spawned by a client)
 ```
 
-Dependencies are pinned exactly in `package.json` and `package-lock.json`.
-
-| Package | Role |
-| --- | --- |
-| `@modelcontextprotocol/sdk` | Official MCP server/client SDK (v1 line) |
-| `zod` | Required peer dependency; tool input schemas |
-| `typescript` | Local compiler for build/typecheck |
-| `tsx` | Runs TypeScript sources directly (server, smoke client, tests) |
-| `vitest` | Test runner |
-| `@types/node` | Node.js type declarations |
-
-## Commands
-
-```bash
-npm run typecheck   # strict TypeScript check (no emit)
-npm run build       # compile src/ to dist/
-npm test            # repository tests + real MCP stdio tests
-npm run smoke       # standalone client smoke script (initialize + ping)
-npm run server      # run the MCP server directly over stdio (usually spawned by a client)
-```
-
-## How the stdio connection works
-
-`StdioClientTransport` spawns a separate Node.js process for the server using
-`process.execPath` and communicates over its stdin/stdout with MCP JSON-RPC. The client
-performs the MCP `initialize` handshake, lists or calls tools, and closes the process
-in a `finally` block. The server reserves stdout exclusively for MCP protocol
-messages; diagnostics go to stderr. Entry points are resolved relative to module URLs,
-so no particular working directory is assumed.
+The stdio client spawns a separate server process with `process.execPath`, performs
+the MCP `initialize` handshake, and closes the process in a `finally` block. Server
+stdout is reserved for MCP protocol traffic; diagnostics go to stderr.

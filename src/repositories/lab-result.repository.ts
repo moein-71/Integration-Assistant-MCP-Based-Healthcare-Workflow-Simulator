@@ -5,3 +5,8 @@ export async function listLabResults(patientId: string): Promise<LabResult[]> {
   const results = await readJsonArray<LabResult>("lab-results.json");
   return results.filter(result => result.patient_id === patientId);
 }
+
+export async function findLabResultById(id: string): Promise<LabResult | undefined> {
+  const results = await readJsonArray<LabResult>("lab-results.json");
+  return results.find(result => result.id === id);
+}

@@ -1,4 +1,5 @@
-import { readFile } from "node:fs/promises";
+import { readFile, rename, rm, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** Errors from this module deliberately name only the data file, never a local path. */
@@ -9,11 +10,19 @@ export class DataStoreError extends Error {
   }
 }
 
+/**
+ * Default data location stays relative to this module (works from src/ and dist/).
+ * MCP_DATA_DIR allows tests to point every spawned server at an isolated copy.
+ */
+function dataFilePath(fileName: string): string {
+  const override = process.env.MCP_DATA_DIR;
+  return override ? join(override, fileName) : fileURLToPath(new URL(`../../data/${fileName}`, import.meta.url));
+}
+
 export async function readJsonArray<T>(fileName: string): Promise<T[]> {
   let raw: string;
   try {
-    // Relative to this module, so both src/ and dist/ builds resolve data/ at the project root.
-    raw = await readFile(fileURLToPath(new URL(`../../data/${fileName}`, import.meta.url)), "utf8");
+    raw = await readFile(dataFilePath(fileName), "utf8");
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
       throw new DataStoreError(`Synthetic data file '${fileName}' is missing.`);
@@ -32,4 +41,17 @@ export async function readJsonArray<T>(fileName: string): Promise<T[]> {
     throw new DataStoreError(`Synthetic data file '${fileName}' must contain a JSON array.`);
   }
   return parsed as T[];
+}
+
+/** Writes to a temporary file first, then renames it into place (atomic replace). */
+export async function writeJsonArray<T>(fileName: string, value: T[]): Promise<void> {
+  const target = dataFilePath(fileName);
+  const temporary = `${target}.${process.pid}.${Date.now()}.tmp`;
+  try {
+    await writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+    await rename(temporary, target);
+  } catch {
+    await rm(temporary, { force: true }).catch(() => undefined);
+    throw new DataStoreError(`Synthetic data file '${fileName}' could not be written.`);
+  }
 }

@@ -35,13 +35,13 @@ describe("synthetic dataset through the repository layer", () => {
 
   test("workflow lookup works and references valid synthetic records", async () => {
     const workflow = await findWorkflowById("WF-SYN-002");
-    expect(workflow?.status).toBe("awaiting_review");
+    expect(workflow?.status).toBe("PENDING_APPROVAL");
     const allLabs = await readJsonArray<LabResult>("lab-results.json");
 
     for (const candidate of await listWorkflows()) {
       await expect(findPatientById(candidate.patient_id)).resolves.toBeDefined();
-      if (candidate.appointment_id) {
-        expect((await listAppointments()).some(a => a.id === candidate.appointment_id)).toBe(true);
+      for (const id of candidate.appointment_ids) {
+        expect((await listAppointments()).some(a => a.id === id)).toBe(true);
       }
       for (const id of candidate.lab_result_ids) {
         expect(allLabs.some(lab => lab.id === id)).toBe(true);
@@ -53,7 +53,7 @@ describe("synthetic dataset through the repository layer", () => {
   test("missing records produce empty lists", async () => {
     await expect(listAppointments({ patient_id: "PAT-SYN-999" })).resolves.toEqual([]);
     await expect(listLabResults("PAT-SYN-003")).resolves.toEqual([]);
-    await expect(listWorkflows("completed")).resolves.toEqual([]);
+    await expect(listWorkflows("APPROVED")).resolves.toEqual([]);
   });
 
   test("filters narrow results without mutating the source files", async () => {
@@ -61,7 +61,8 @@ describe("synthetic dataset through the repository layer", () => {
     expect(scheduled.length).toBeGreaterThan(0);
     expect(scheduled.every(a => a.status === "scheduled")).toBe(true);
     expect((await listAppointments({ patient_id: "PAT-SYN-001" })).length).toBe(2);
-    expect((await listWorkflows("draft")).length).toBe(2);
+    expect((await listWorkflows("DRAFT")).length).toBe(2);
+    expect((await listWorkflows()).length).toBe(4);
     expect((await readJsonArray("patients.json")).length).toBe(3);
   });
 

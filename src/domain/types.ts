@@ -1,7 +1,10 @@
+import type { IntegrationSystem, WorkflowStatus, WorkflowTemplate } from "./workflow-policy.js";
+
+export type { IntegrationSystem, WorkflowStatus, WorkflowTemplate } from "./workflow-policy.js";
+
 export type PatientStatus = "active" | "inactive";
 export type AppointmentStatus = "scheduled" | "completed" | "cancelled";
 export type LabResultStatus = "final" | "preliminary";
-export type WorkflowStatus = "draft" | "awaiting_review" | "completed";
 
 export interface Patient {
   id: string;
@@ -35,17 +38,37 @@ export interface LabResult {
   note?: string;
 }
 
+export interface ValidationResult {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+  workflow_id: string;
+}
+
+export interface WorkflowHistoryEntry {
+  from: WorkflowStatus | null;
+  to: WorkflowStatus;
+  at: string;
+  note?: string;
+}
+
 export interface Workflow {
   id: string;
+  name: string;
   patient_id: string;
-  appointment_id?: string;
+  source_system: IntegrationSystem;
+  destination_system: IntegrationSystem;
+  template: WorkflowTemplate;
+  steps: string[];
+  appointment_ids: string[];
   lab_result_ids: string[];
   status: WorkflowStatus;
-  title: string;
   description?: string;
-  steps: string[];
   created_at: string;
   updated_at: string;
+  last_validation?: ValidationResult;
+  rejection_note?: string;
+  history: WorkflowHistoryEntry[];
 }
 
 export interface PatientSummary {

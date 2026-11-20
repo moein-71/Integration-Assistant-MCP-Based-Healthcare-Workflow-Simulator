@@ -1,5 +1,6 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { Lookup } from "../../domain/lookup.js";
+import type { OperationResult } from "../../domain/results.js";
 
 const SYNTHETIC_NOTICE = "Synthetic demonstration data only. Not for clinical use.";
 
@@ -23,4 +24,8 @@ export function errorResult(message: string): CallToolResult {
 
 export function fromLookup<T>(lookup: Lookup<T>): CallToolResult {
   return lookup.found ? jsonResult(lookup.data) : errorResult(lookup.message);
+}
+
+export function fromOperation<T>(result: OperationResult<T>): CallToolResult {
+  return result.ok ? jsonResult(result.data) : errorResult(result.error);
 }

@@ -1,37 +1,84 @@
 [
   {
     "id": "WF-SYN-001",
+    "name": "Synthetic intake handoff example",
     "patient_id": "PAT-SYN-001",
-    "appointment_id": "APT-SYN-001",
-    "lab_result_ids": ["LAB-SYN-001", "LAB-SYN-002"],
-    "status": "draft",
-    "title": "Synthetic intake handoff example",
-    "description": "Example workflow record only. No workflow execution is implemented.",
+    "source_system": "EHR_SYNTH",
+    "destination_system": "SCHEDULER_SYNTH",
+    "template": "INTAKE_HANDOFF",
     "steps": ["synthetic_intake_review", "synthetic_handoff_preparation"],
+    "appointment_ids": ["APT-SYN-001"],
+    "lab_result_ids": ["LAB-SYN-001", "LAB-SYN-002"],
+    "status": "DRAFT",
+    "description": "Example workflow record only. No workflow execution is implemented.",
     "created_at": "2026-11-12T09:00:00Z",
-    "updated_at": "2026-11-15T11:30:00Z"
+    "updated_at": "2026-11-15T11:30:00Z",
+    "history": [
+      { "from": null, "to": "DRAFT", "at": "2026-11-12T09:00:00Z" }
+    ]
   },
   {
     "id": "WF-SYN-002",
+    "name": "Synthetic referral coordination example",
     "patient_id": "PAT-SYN-002",
-    "appointment_id": "APT-SYN-003",
-    "lab_result_ids": ["LAB-SYN-003", "LAB-SYN-004", "LAB-SYN-005"],
-    "status": "awaiting_review",
-    "title": "Synthetic referral coordination example",
-    "description": "Example workflow record only. No approval or rejection is implemented.",
+    "source_system": "EHR_SYNTH",
+    "destination_system": "REFERRAL_SYNTH",
+    "template": "REFERRAL_COORDINATION",
     "steps": ["synthetic_referral_preparation", "synthetic_review_queue"],
+    "appointment_ids": ["APT-SYN-003"],
+    "lab_result_ids": ["LAB-SYN-003", "LAB-SYN-004", "LAB-SYN-005"],
+    "status": "PENDING_APPROVAL",
+    "description": "Example workflow record only. Human approval is not available through MCP.",
     "created_at": "2026-11-13T10:00:00Z",
-    "updated_at": "2026-11-16T14:15:00Z"
+    "updated_at": "2026-11-16T14:15:00Z",
+    "last_validation": {
+      "valid": true,
+      "errors": [],
+      "warnings": [],
+      "workflow_id": "WF-SYN-002"
+    },
+    "history": [
+      { "from": null, "to": "DRAFT", "at": "2026-11-13T10:00:00Z" },
+      { "from": "DRAFT", "to": "PENDING_APPROVAL", "at": "2026-11-16T14:15:00Z", "note": "Status normalized to current lifecycle vocabulary." }
+    ]
   },
   {
     "id": "WF-SYN-003",
+    "name": "Synthetic records review example",
     "patient_id": "PAT-SYN-003",
-    "lab_result_ids": [],
-    "status": "draft",
-    "title": "Synthetic records review example",
-    "description": "Example workflow record only. No lab results are attached in this example.",
+    "source_system": "LAB_SYNTH",
+    "destination_system": "EHR_SYNTH",
+    "template": "LAB_REVIEW",
     "steps": ["synthetic_records_check"],
+    "appointment_ids": [],
+    "lab_result_ids": [],
+    "status": "DRAFT",
+    "description": "Example workflow record only. No lab results are attached in this example.",
     "created_at": "2026-11-14T08:30:00Z",
-    "updated_at": "2026-11-14T08:30:00Z"
+    "updated_at": "2026-11-14T08:30:00Z",
+    "history": [
+      { "from": null, "to": "DRAFT", "at": "2026-11-14T08:30:00Z" }
+    ]
+  },
+  {
+    "id": "WF-SYN-004",
+    "name": "Synthetic referral revision example",
+    "patient_id": "PAT-SYN-002",
+    "source_system": "REFERRAL_SYNTH",
+    "destination_system": "EHR_SYNTH",
+    "template": "REFERRAL_COORDINATION",
+    "steps": ["synthetic_referral_preparation", "synthetic_revision_queue"],
+    "appointment_ids": ["APT-SYN-004"],
+    "lab_result_ids": ["LAB-SYN-003"],
+    "status": "REJECTED",
+    "description": "Example of a rejected synthetic workflow. Rejection context is fixture data only; no admin operation is exposed through MCP.",
+    "rejection_note": "Synthetic demonstration note: handoff details needed revision.",
+    "created_at": "2026-11-17T09:00:00Z",
+    "updated_at": "2026-11-18T12:00:00Z",
+    "history": [
+      { "from": null, "to": "DRAFT", "at": "2026-11-17T09:00:00Z" },
+      { "from": "DRAFT", "to": "PENDING_APPROVAL", "at": "2026-11-17T15:00:00Z" },
+      { "from": "PENDING_APPROVAL", "to": "REJECTED", "at": "2026-11-18T12:00:00Z", "note": "Synthetic demonstration note: handoff details needed revision." }
+    ]
   }
 ]

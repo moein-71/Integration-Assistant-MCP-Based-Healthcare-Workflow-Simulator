@@ -5,9 +5,9 @@ import { registerLabResultTools } from "./tools/lab-result.tools.js";
 import { registerPatientTools } from "./tools/patient.tools.js";
 import { registerWorkflowTools } from "./tools/workflow.tools.js";
 
-// Only read-only tools over synthetic data are registered in Stage 2.
-// Resources, prompts and write operations are intentionally absent.
-const server = new McpServer({ name: "integration-assistant", version: "0.2.0" });
+// Read-only tools plus draft creation/validation/submission/revision over synthetic data.
+// Approval, rejection, execution, resources and prompts are intentionally absent.
+const server = new McpServer({ name: "integration-assistant", version: "0.3.0" });
 registerPatientTools(server);
 registerAppointmentTools(server);
 registerLabResultTools(server);

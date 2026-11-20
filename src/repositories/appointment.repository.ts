@@ -14,3 +14,8 @@ export async function listAppointments(filter: AppointmentFilter = {}): Promise<
       (filter.status === undefined || appointment.status === filter.status)
   );
 }
+
+export async function findAppointmentById(id: string): Promise<Appointment | undefined> {
+  const appointments = await readJsonArray<Appointment>("appointments.json");
+  return appointments.find(appointment => appointment.id === id);
+}
