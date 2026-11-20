@@ -1,4 +1,4 @@
-import { readFile, rename, rm, writeFile } from "node:fs/promises";
+import { access, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -17,6 +17,15 @@ export class DataStoreError extends Error {
 function dataFilePath(fileName: string): string {
   const override = process.env.MCP_DATA_DIR;
   return override ? join(override, fileName) : fileURLToPath(new URL(`../../data/${fileName}`, import.meta.url));
+}
+
+export async function dataFileExists(fileName: string): Promise<boolean> {
+  try {
+    await access(dataFilePath(fileName));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function readJsonArray<T>(fileName: string): Promise<T[]> {

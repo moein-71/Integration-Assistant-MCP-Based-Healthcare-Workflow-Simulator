@@ -1,6 +1,7 @@
 import { found, notFound, type Lookup } from "../domain/lookup.js";
 import type { OperationResult } from "../domain/results.js";
 import { fail, ok } from "../domain/results.js";
+import { nextTimestamp } from "../domain/time.js";
 import type {
   IntegrationSystem,
   ValidationResult,
@@ -31,12 +32,6 @@ export interface EditableWorkflowFields {
 
 export interface ReviseWorkflowInput extends EditableWorkflowFields {
   revision_note?: string;
-}
-
-function nextTimestamp(previous: string): string {
-  const previousTime = Date.parse(previous);
-  const now = Date.now();
-  return new Date(Number.isNaN(previousTime) ? now : Math.max(now, previousTime + 1)).toISOString();
 }
 
 export async function createWorkflowDraft(input: EditableWorkflowFields): Promise<OperationResult<Workflow>> {

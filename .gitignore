@@ -15,6 +15,9 @@ coverage/
 !.env.example
 .npmrc
 
+# Runtime admin audit log (created by the Admin CLI, not a fixture)
+data/audit-events.json
+
 # Logs and local verification artifacts
 *.log
 npm-debug.log*

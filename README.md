@@ -4,14 +4,14 @@ A TypeScript MCP server that demonstrates synthetic healthcare integration workf
 over stdio. **All patients, appointments, lab-style results, and workflows are
 fictional.** See `data/README.md`.
 
-## Current status (Stage 3)
+## Current status (Stage 4)
 
-The server exposes **exactly 10 MCP tools**: six read-only tools from Stage 2 plus
-four workflow lifecycle tools added in this stage.
+The MCP server exposes **exactly 10 tools**: six read-only tools plus four workflow
+lifecycle tools. Approval and rejection are handled only by the separate **Admin CLI**
+(`src/admin/`), which never imports or registers MCP tools.
 
-**Not implemented:** human approval/rejection (planned as a separate Admin CLI),
-workflow execution or publishing, MCP resources or prompts, authentication, databases,
-and external healthcare integrations.
+**Not implemented:** workflow execution or publishing, MCP resources or prompts,
+authentication/authorization, databases, and external healthcare integrations.
 
 ## Workflow lifecycle
 
@@ -24,7 +24,7 @@ DRAFT
   v
 PENDING_APPROVAL
   |                 |
-  | Admin approve   | Admin reject   <-- future Admin CLI, not available via MCP
+  | Admin approve   | Admin reject   <-- Admin CLI only, never via MCP
   v                 v
 APPROVED          REJECTED
                      |
@@ -35,9 +35,9 @@ APPROVED          REJECTED
 
 MCP can perform only `DRAFT -> PENDING_APPROVAL` and `REJECTED -> DRAFT`. Every other
 transition is rejected with a clear error. Approval and rejection are deliberately
-**not** exposed through MCP; they will be added later through a separate human Admin
-CLI. The simulator never executes or publishes workflows — `APPROVED` is a supported
-state value for the future approval flow, but no current fixture uses it.
+**not** exposed through MCP; they are implemented in the separate Admin CLI described
+below. The simulator never executes or publishes workflows — `APPROVED` is a state
+value only, and no current fixture uses it.
 
 ### Validation vs submission
 
@@ -61,16 +61,60 @@ previously used `completed`, so none was mapped to `APPROVED`; that mapping is d
 only for hypothetical legacy data and does not imply that any workflow was executed.
 The old lowercase values are no longer active workflow states.
 
+## Admin CLI (human approval/rejection)
+
+The Admin CLI is a **separate process** (`src/admin/cli.ts`) using Node's built-in
+`node:util` `parseArgs`. It reuses the domain types, repositories, and JSON persistence
+but is never imported or registered by the MCP server. It does not add any MCP tools.
+
+```bash
+npm run admin -- list
+npm run admin -- inspect WF-SYN-002
+npm run admin -- approve WF-SYN-002 --actor "admin@example.com"
+npm run admin -- reject WF-SYN-002 --actor "admin@example.com" --reason "Missing integration details"
+```
+
+| Command | Behavior |
+| --- | --- |
+| `list` | Shows only `PENDING_APPROVAL` workflows |
+| `inspect <id>` | Shows status, editable fields, validation metadata, workflow history and audit events |
+| `approve <id> --actor <label>` | `PENDING_APPROVAL -> APPROVED` only |
+| `reject <id> --actor <label> --reason <text>` | `PENDING_APPROVAL -> REJECTED` only; reason must be non-empty |
+
+Invalid commands, missing IDs, empty `--actor`/`--reason` values, and invalid state
+transitions print a clear error and exit non-zero. Successful commands print a
+human-readable confirmation and update the workflow file plus its history.
+
+**`--actor` is a self-declared audit label only. It is NOT authentication or
+authorization.** Anyone able to run the CLI can supply any label; there is no identity
+verification, role check, or signature. Do not treat it as a security control.
+
+Approval is a state change only: **the CLI never executes or publishes a workflow.**
+
+### Audit log
+
+Each successful approve/reject appends an event to `data/audit-events.json`, separate
+from the workflow fixtures. Events contain workflow ID, action (`APPROVED`/`REJECTED`),
+actor label, timestamp, and the rejection reason when applicable. The file is created
+on first use and is ignored by Git so local audit data is not accidentally committed.
+
+Limitations: the "append" is implemented as read-all + atomic rewrite of a single JSON
+file. There is no cross-process locking, hash chain, tamper detection, or durability
+guarantee beyond the JSON file write. A crash between the workflow write and the audit
+write could leave them inconsistent. This is intentionally minimal for the MVP.
+
 ## Architecture
 
 ```text
 data/                         Synthetic JSON dataset (production fixtures)
 src/domain/                   Entity types, lifecycle policy, results
 src/repositories/             JSON file access, atomic writes, write serialisation
-src/services/                 Validation and workflow lifecycle operations
+src/services/                 Validation, lifecycle and admin decision operations
 src/server/tools/             MCP tool registration, schemas and result formatting
 src/client/smoke.ts           Real MCP client smoke script
+src/admin/cli.ts              Separate human Admin CLI (parseArgs)
 tests/repositories/           Data access and integrity tests
+tests/admin/                  Admin CLI tests (isolated data directories)
 tests/services/               Workflow lifecycle unit/integration tests
 tests/smoke/                  Real MCP stdio tests
 tests/support/                Isolated-data test client helper
@@ -123,6 +167,7 @@ npm run build
 npm test
 npm run smoke
 npm run server   # run the MCP server over stdio (normally spawned by a client)
+npm run admin -- list   # separate Admin CLI (see section above)
 ```
 
 The stdio client spawns a separate server process with `process.execPath`, performs

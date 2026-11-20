@@ -71,6 +71,17 @@ export interface Workflow {
   history: WorkflowHistoryEntry[];
 }
 
+export type AdminAction = "APPROVED" | "REJECTED";
+
+/** Self-declared audit label from the Admin CLI; this is not authentication. */
+export interface AuditEvent {
+  workflow_id: string;
+  action: AdminAction;
+  actor: string;
+  timestamp: string;
+  reason?: string;
+}
+
 export interface PatientSummary {
   patient: Patient;
   appointments: Appointment[];

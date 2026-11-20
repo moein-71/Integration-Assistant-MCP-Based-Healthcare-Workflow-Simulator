@@ -12,7 +12,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "smoke": "tsx src/client/smoke.ts",
-    "server": "tsx src/server/index.ts"
+    "server": "tsx src/server/index.ts",
+    "admin": "tsx src/admin/cli.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.2",
