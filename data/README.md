@@ -25,14 +25,18 @@ calendar dates (`YYYY-MM-DD`).
 ## Workflow lifecycle fixtures
 
 The only workflow states are `DRAFT`, `PENDING_APPROVAL`, `APPROVED`, and `REJECTED`.
-The fixtures cover `DRAFT` (including one that is invalid for submission warnings),
-`PENDING_APPROVAL`, and `REJECTED`. The `REJECTED` fixture carries a synthetic
-rejection note so the revision flow can be demonstrated.
+The current fixtures cover `DRAFT` (WF-SYN-001 and WF-SYN-003), `PENDING_APPROVAL`
+(WF-SYN-002), and `REJECTED` (WF-SYN-004). There is no `APPROVED` fixture. WF-SYN-003
+is valid but has non-blocking warnings (no related records and only one step). The
+`REJECTED` fixture carries a synthetic rejection note so the revision flow can be
+demonstrated.
 
-Earlier fixture statuses were normalized as follows: `draft` → `DRAFT`,
-`awaiting_review` → `PENDING_APPROVAL`, and `completed` → `APPROVED` (fixture
-migration only; it does not mean any workflow was executed). The old values are no
-longer used as active workflow states.
+Before normalization the three original fixtures contained only `draft` (WF-SYN-001
+and WF-SYN-003) and `awaiting_review` (WF-SYN-002). These became `DRAFT` and
+`PENDING_APPROVAL` respectively; WF-SYN-003 was intentionally left in `DRAFT`. No
+fixture used `completed`, so no fixture was mapped to `APPROVED`. That mapping applies
+only to hypothetical legacy data and does not mean any workflow was executed. The old
+lowercase values are no longer active workflow states.
 
 Read-only tools never modify these files. Workflow lifecycle tools write only to the
 active data directory, which tests point at an isolated temporary copy.

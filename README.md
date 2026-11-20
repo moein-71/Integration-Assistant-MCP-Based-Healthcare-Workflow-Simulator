@@ -36,8 +36,8 @@ APPROVED          REJECTED
 MCP can perform only `DRAFT -> PENDING_APPROVAL` and `REJECTED -> DRAFT`. Every other
 transition is rejected with a clear error. Approval and rejection are deliberately
 **not** exposed through MCP; they will be added later through a separate human Admin
-CLI. The simulator never executes or publishes workflows — an `APPROVED` status is
-only a state value in synthetic fixture data.
+CLI. The simulator never executes or publishes workflows — `APPROVED` is a supported
+state value for the future approval flow, but no current fixture uses it.
 
 ### Validation vs submission
 
@@ -53,10 +53,13 @@ only a state value in synthetic fixture data.
   results, retains rejection context in history, and returns to `DRAFT` without
   submitting automatically.
 
-Earlier fixture statuses were migrated as follows: `draft` → `DRAFT`,
-`awaiting_review` → `PENDING_APPROVAL`, and `completed` → `APPROVED`. The last mapping
-is a fixture migration only; it does not imply that any workflow was executed. The old
-values are no longer active workflow states.
+The three original fixtures contained only `draft` (WF-SYN-001 and WF-SYN-003) and
+`awaiting_review` (WF-SYN-002). They were normalized to `DRAFT` and `PENDING_APPROVAL`
+respectively; WF-SYN-003 was intentionally left in `DRAFT` because it was already a
+draft. A `REJECTED` fixture (WF-SYN-004) was added to demonstrate revision. No fixture
+previously used `completed`, so none was mapped to `APPROVED`; that mapping is defined
+only for hypothetical legacy data and does not imply that any workflow was executed.
+The old lowercase values are no longer active workflow states.
 
 ## Architecture
 
