@@ -1,0 +1,27 @@
+{
+  "name": "integration-assistant-mcp-healthcare-simulator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "MCP-based synthetic healthcare workflow simulator - foundation stage",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "smoke": "tsx src/client/smoke.ts",
+    "server": "tsx src/server/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "vitest": "5.1.1"
+  }
+}
