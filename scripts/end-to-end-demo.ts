@@ -152,7 +152,15 @@ async function main(): Promise<void> {
 
     heading("9-12. Admin CLI list/inspect, approve; verify APPROVED");
     showCli("list", await runCli(dataDir, ["list"]));
-    showCli(`inspect WF-SYN-002`, await runCli(dataDir, ["inspect", "WF-SYN-002"]));
+    const inspectResult = await runCli(dataDir, ["inspect", createdId]);
+    showCli(`inspect ${createdId}`, inspectResult);
+    // The inspection must refer to the workflow created and submitted in this demo run.
+    if (!inspectResult.stdout.includes(`Workflow ${createdId}`)) {
+      throw new Error(
+        `Inspection target mismatch: expected the Admin CLI to inspect the created workflow ${createdId}, ` +
+        `but its output did not contain "Workflow ${createdId}".`
+      );
+    }
 
     await withClient(
       async client => {
