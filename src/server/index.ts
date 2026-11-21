@@ -4,14 +4,18 @@ import { registerAppointmentTools } from "./tools/appointment.tools.js";
 import { registerLabResultTools } from "./tools/lab-result.tools.js";
 import { registerPatientTools } from "./tools/patient.tools.js";
 import { registerWorkflowTools } from "./tools/workflow.tools.js";
+import { registerResources } from "./resources.js";
+import { registerPrompts } from "./prompts.js";
 
 // Read-only tools plus draft creation/validation/submission/revision over synthetic data.
-// Approval, rejection, execution, resources and prompts are intentionally absent.
-const server = new McpServer({ name: "integration-assistant", version: "0.3.0" });
+// Resources and prompts are added in this stage for AI assistant guidance.
+const server = new McpServer({ name: "integration-assistant", version: "0.4.0" });
 registerPatientTools(server);
 registerAppointmentTools(server);
 registerLabResultTools(server);
 registerWorkflowTools(server);
+registerResources(server);
+registerPrompts(server);
 
 async function shutdown(signal: string): Promise<void> {
   try {

@@ -4,14 +4,15 @@ A TypeScript MCP server that demonstrates synthetic healthcare integration workf
 over stdio. **All patients, appointments, lab-style results, and workflows are
 fictional.** See `data/README.md`.
 
-## Current status (Stage 4)
+## Current status (Stage 5)
 
-The MCP server exposes **exactly 10 tools**: six read-only tools plus four workflow
-lifecycle tools. Approval and rejection are handled only by the separate **Admin CLI**
-(`src/admin/`), which never imports or registers MCP tools.
+The MCP server exposes **exactly 10 tools** (unchanged), **3 read-only resources plus
+one patient resource template**, and **exactly 3 prompts**. Approval and rejection are
+handled only by the separate **Admin CLI** (`src/admin/`), which never imports or
+registers MCP capabilities.
 
-**Not implemented:** workflow execution or publishing, MCP resources or prompts,
-authentication/authorization, databases, and external healthcare integrations.
+**Not implemented:** workflow execution or publishing, authentication/authorization,
+databases, and external healthcare integrations.
 
 ## Workflow lifecycle
 
@@ -103,6 +104,53 @@ file. There is no cross-process locking, hash chain, tamper detection, or durabi
 guarantee beyond the JSON file write. A crash between the workflow write and the audit
 write could leave them inconsistent. This is intentionally minimal for the MVP.
 
+## MCP Resources and Prompts (Stage 5)
+
+Resources and prompts are a different MCP capability from tools:
+
+- **Tools** are callable operations that may read or write synthetic data.
+- **Resources** are read-only, URI-addressable context that an MCP client can read.
+  Reading a resource never modifies any JSON file or workflow state.
+- **Prompts** are reusable instruction templates. They only return text messages;
+  they never call tools, modify data, approve, execute, or publish workflows.
+
+### Resources
+
+| URI | Kind | Content |
+| --- | --- | --- |
+| `integration://systems` | static | The simulated environment: data domains, available synthetic systems, workflow capabilities, and the fact that no real system or external API is connected |
+| `workflow://templates` | static | The three supported templates (`INTAKE_HANDOFF`, `LAB_REVIEW`, `REFERRAL_COORDINATION`), their source/destination systems and steps |
+| `workflow://states` | static | The real state machine, which transitions belong to MCP vs the Admin CLI, validation rules, and the fact that `APPROVED` does not mean executed |
+| `patient://{id}` | template | One synthetic patient record by ID, read through the existing patient service; unknown IDs return a resource error |
+
+The patient template's discovery callback lists only real patient IDs from the
+synthetic dataset (it never invents IDs). All resource content is markdown combined
+with a machine-readable JSON section and is strictly read-only.
+
+### Prompts
+
+| Prompt | Arguments | Purpose |
+| --- | --- | --- |
+| `create_patient_integration_workflow` | `patient_id` | Gather patient, appointment, lab and template context, create a draft, validate, and submit for approval only if valid |
+| `summarize_patient_information` | `patient_id` | Summarize a synthetic patient from real tool data, distinguishing missing data from negative findings and inventing nothing |
+| `review_workflow_draft` | `workflow_id` | Review status, validation and patient context; report errors/warnings separately without modifying or approving the workflow |
+
+Prompts guide an AI assistant but never perform approval, execution or publishing.
+Human approval/rejection remains exclusively in the Admin CLI.
+
+### Example MCP client usage
+
+```ts
+const { resources } = await client.listResources();
+const { resourceTemplates } = await client.listResourceTemplates();
+const patient = await client.readResource({ uri: "patient://PAT-SYN-001" });
+const { prompts } = await client.listPrompts();
+const instructions = await client.getPrompt({
+  name: "create_patient_integration_workflow",
+  arguments: { patient_id: "PAT-SYN-001" }
+});
+```
+
 ## Architecture
 
 ```text
@@ -111,11 +159,14 @@ src/domain/                   Entity types, lifecycle policy, results
 src/repositories/             JSON file access, atomic writes, write serialisation
 src/services/                 Validation, lifecycle and admin decision operations
 src/server/tools/             MCP tool registration, schemas and result formatting
+src/server/resources.ts       MCP resources + patient resource template (read-only)
+src/server/prompts.ts         MCP prompt registration (instructions only)
 src/client/smoke.ts           Real MCP client smoke script
 src/admin/cli.ts              Separate human Admin CLI (parseArgs)
 tests/repositories/           Data access and integrity tests
 tests/admin/                  Admin CLI tests (isolated data directories)
 tests/services/               Workflow lifecycle unit/integration tests
+tests/resources-and-prompts.test.ts   Resources/prompts over real MCP stdio
 tests/smoke/                  Real MCP stdio tests
 tests/support/                Isolated-data test client helper
 ```
