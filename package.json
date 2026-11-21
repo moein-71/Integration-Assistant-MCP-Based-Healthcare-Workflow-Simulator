@@ -13,7 +13,8 @@
     "test": "vitest run",
     "smoke": "tsx src/client/smoke.ts",
     "server": "tsx src/server/index.ts",
-    "admin": "tsx src/admin/cli.ts"
+    "admin": "tsx src/admin/cli.ts",
+    "demo": "tsx scripts/end-to-end-demo.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.2",

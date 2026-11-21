@@ -41,6 +41,7 @@ lowercase values are no longer active workflow states.
 Read-only tools never modify these files. Workflow lifecycle tools write only to the
 active data directory, which tests point at an isolated temporary copy.
 
-The Admin CLI writes its separate append-only event log to `audit-events.json` in the
-same active data directory. That file is created on first approval/rejection, is not a
-synthetic fixture, and is ignored by Git.
+The Admin CLI writes its separate event log to `audit-events.json` in the same active
+data directory. That file is created on first approval/rejection, is not a synthetic
+fixture, and is ignored by Git. It is an append-style log implemented as read-all plus
+atomic JSON rewrite, not strict append-only storage (see README for limitations).

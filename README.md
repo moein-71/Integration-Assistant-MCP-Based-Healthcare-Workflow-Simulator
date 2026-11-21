@@ -4,15 +4,22 @@ A TypeScript MCP server that demonstrates synthetic healthcare integration workf
 over stdio. **All patients, appointments, lab-style results, and workflows are
 fictional.** See `data/README.md`.
 
-## Current status (Stage 5)
+## Current status (Stage 6 — final verification)
 
-The MCP server exposes **exactly 10 tools** (unchanged), **3 read-only resources plus
-one patient resource template**, and **exactly 3 prompts**. Approval and rejection are
+The MCP server exposes **exactly 10 tools**, **3 read-only static resources plus one
+patient resource template**, and **exactly 3 prompts**. Approval and rejection are
 handled only by the separate **Admin CLI** (`src/admin/`), which never imports or
 registers MCP capabilities.
 
-**Not implemented:** workflow execution or publishing, authentication/authorization,
-databases, and external healthcare integrations.
+Built with TypeScript 5.9.3 and `@modelcontextprotocol/sdk` **1.32.2** using ESM and
+strict compiler settings. Node.js >= 18 is required; all packages are local (no global
+tools) and there is no runtime dependency beyond the MCP SDK and Zod.
+
+**Not implemented by design:** workflow execution or publishing, authentication /
+authorization, databases, external healthcare integrations, real patient data, RAG or
+embeddings. Nothing in this project is a production healthcare system: all records are
+fictional, no real hospital or external API is connected, and `APPROVED` is only a
+human-decision state, not a signal that any workflow ran.
 
 ## Workflow lifecycle
 
@@ -151,6 +158,62 @@ const instructions = await client.getPrompt({
 });
 ```
 
+## End-to-end demonstration
+
+`npm run demo` runs `scripts/end-to-end-demo.ts`: a real MCP Client connects to the
+real stdio server and drives the separate Admin CLI, all against a temporary copy of
+the fixtures. Actual output from the final verification run (abbreviated where noted):
+
+```text
+$ npm run demo
+===== 1-3. Connect, list tools, read the three static resources =====
+MCP tools (10): create_workflow_draft, get_lab_results, get_patient, get_patient_summary, get_workflow, list_appointments, list_workflows, revise_workflow_draft, submit_workflow_for_approval, validate_workflow
+Read integration://systems: 57 lines; first line: <!-- SYNTHETIC HEALTHCARE INTEGRATION SIMULATOR -->
+Read workflow://templates: 98 lines; first line: <!-- WORKFLOW TEMPLATE DOCUMENTATION -->
+Read workflow://states: 95 lines; first line: <!-- WORKFLOW LIFECYCLE STATE MACHINE -->
+
+===== 4-5. Discover the patient template and read a synthetic patient =====
+Resource templates: patient://{id}
+{
+  "id": "PAT-SYN-001",
+  "display_name": "Avery Cedarwood", ... }
+
+===== 6-8. Retrieve appointments/labs, create, validate and submit a draft =====
+patient PAT-SYN-001: 2 appointments, 2 lab results
+created: WF-SYN-005 status=DRAFT
+validate: valid=true errors=0 warnings=0
+submit: WF-SYN-005 status=PENDING_APPROVAL
+
+===== 9-12. Admin CLI list/inspect, approve; verify APPROVED =====
+$ npm run admin -- list
+Workflows awaiting approval (2):
+WF-SYN-002  PENDING_APPROVAL  Synthetic referral coordination example
+WF-SYN-005  PENDING_APPROVAL  Stage 6 demonstration workflow
+...
+$ npm run admin -- approve WF-SYN-005 --actor "admin@example.com"
+APPROVED workflow WF-SYN-005 (actor: admin@example.com).
+This decision does not execute or publish the workflow.
+after approval: WF-SYN-005 status=APPROVED
+
+===== 13. Rejection and revision path in the isolated dataset =====
+created+submitted workflow: WF-SYN-006 status=PENDING_APPROVAL
+$ npm run admin -- reject WF-SYN-006 --actor "admin@example.com" --reason "Synthetic demo: handoff details need revision"
+REJECTED workflow WF-SYN-006 (actor: admin@example.com).
+after rejection: WF-SYN-006 status=REJECTED rejection_note="Synthetic demo: handoff details need revision"
+revised: WF-SYN-006 status=DRAFT idPreserved=true createdAtPreserved=true updatedAtChanged=true lastValidationCleared=true rejectionNoteKept=true lastHistory=REJECTED->DRAFT
+revalidate: valid=true; resubmit (separate call): status=PENDING_APPROVAL
+
+===== 14. Audit events persisted in the isolated data directory =====
+APPROVED WF-SYN-005 actor=admin@example.com at=2026-11-21T01:06:02.711Z
+REJECTED WF-SYN-006 actor=admin@example.com at=2026-11-21T01:06:03.146Z reason="Synthetic demo: handoff details need revision"
+
+Demo complete. No workflow was executed or published. Production fixtures were not modified.
+```
+
+Timestamps are generated at run time, so they differ between runs. The same sequence
+can be reproduced manually with the commands in the tool, resource, prompt and Admin
+CLI sections above.
+
 ## Architecture
 
 ```text
@@ -217,10 +280,35 @@ npm run typecheck
 npm run build
 npm test
 npm run smoke
+npm run demo     # reproducible end-to-end demo (isolated temporary data)
 npm run server   # run the MCP server over stdio (normally spawned by a client)
 npm run admin -- list   # separate Admin CLI (see section above)
 ```
 
 The stdio client spawns a separate server process with `process.execPath`, performs
 the MCP `initialize` handshake, and closes the process in a `finally` block. Server
-stdout is reserved for MCP protocol traffic; diagnostics go to stderr.
+stdout is reserved for MCP protocol traffic; diagnostics go to stderr. The compiled
+`dist/server/index.js` works the same way and can be launched from any working
+directory because data paths are module-relative (or set via `MCP_DATA_DIR`).
+
+## Security and known limitations
+
+- All records (patients, appointments, lab-style results, workflows) and all integration
+  systems are synthetic and fictional. No real healthcare system, hospital API, or
+  external network service is connected; the source makes no network requests.
+- The Admin CLI's `--actor` is a self-declared audit label, **not authentication or
+  authorization**. Anyone who can run the CLI can choose any label. It is not a
+  multi-user administration system and provides no identity verification or roles.
+- The audit log is an append-style log implemented as read-all plus atomic JSON rewrite.
+  It is **not** strict append-only storage, has no hash chain or tamper detection, and
+  is not cryptographically secure or tamper-proof.
+- There is no cross-process file locking. Writes are serialized only within one process,
+  and a crash between the workflow-file write and the audit-file write can leave the two
+  inconsistent. Atomic rename does not by itself guarantee full crash durability.
+- Resource and prompt text is advisory only. Prompts instruct a connected AI assistant;
+  they do not enforce tool permissions or guarantee downstream behavior. Resources are
+  read-only and never modify data.
+- There is no authentication, authorization, database, workflow execution engine, or
+  publishing step. `APPROVED` records a human decision only; nothing is run or published.
+- This project is a demonstration simulator. It makes no claims of production readiness
+  or regulatory / HIPAA compliance.

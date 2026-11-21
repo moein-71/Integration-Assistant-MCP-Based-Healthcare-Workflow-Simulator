@@ -135,6 +135,28 @@ describe("MCP resources", () => {
     );
   }, 60_000);
 
+  test("workflow://states states revision is REJECTED -> DRAFT only", async () => {
+    await withClient(
+      async client => {
+        const text = resourceText(await client.readResource({ uri: "workflow://states" }));
+
+        // DRAFT must never be described as revisable.
+        expect(text).not.toContain("MCP can revise and validate");
+        expect(text).toContain("a DRAFT workflow cannot be revised");
+        expect(text).toContain("Only a REJECTED workflow can be revised");
+        expect(text).toContain('"revision_transition"');
+        expect(text).toContain('"from": "REJECTED"');
+        expect(text).toContain('"to": "DRAFT"');
+        expect(text).toContain('"tool": "revise_workflow_draft"');
+
+        // The machine-readable DRAFT capability list must not include revision.
+        const draftCapabilities = text.match(/"DRAFT":\s*\[([^\]]*)\]/)?.[1] ?? "";
+        expect(draftCapabilities).not.toContain("revise_workflow_draft");
+      },
+      { reuseDataDir: dataDir }
+    );
+  }, 60_000);
+
   test("reads an existing synthetic patient resource", async () => {
     await withClient(
       async client => {
@@ -227,6 +249,39 @@ describe("MCP prompts", () => {
         expect(text).toContain("Submit for human approval only if validation succeeds");
         expect(text).toContain("Stop after submission");
         expect(text).toContain("Never approve, execute or publish a workflow");
+      },
+      { reuseDataDir: dataDir }
+    );
+  }, 60_000);
+
+  test("create_patient_integration_workflow submits automatically after valid validation", async () => {
+    await withClient(
+      async client => {
+        const text = promptText(
+          await client.getPrompt({
+            name: "create_patient_integration_workflow",
+            arguments: { patient_id: "PAT-SYN-001" }
+          })
+        );
+
+        // No extra user-confirmation gate before submission.
+        expect(text).toContain("call submit_workflow_for_approval");
+        expect(text).toContain("Do not ask the user for an additional confirmation first");
+
+        // Success branch: report ID + status, name the Admin CLI review owner, then stop.
+        expect(text).toContain("report the workflow ID and its new PENDING_APPROVAL status");
+        expect(text).toContain("a human administrator must review it using the separate Admin CLI");
+        expect(text).toContain("PENDING_APPROVAL means submitted for human review; it is NOT approved");
+        expect(text).toContain("- Stop.");
+
+        // Failure branch: report errors/warnings, leave DRAFT, do not submit, stop.
+        expect(text).toContain("If validation fails (valid: false)");
+        expect(text).toContain("report the validation errors and any");
+        expect(text).toContain("Leave the workflow in DRAFT. Stop.");
+        expect(text).toContain("Do not call submit_workflow_for_approval");
+
+        // Hard limits.
+        expect(text).toContain("Never claim that a workflow was executed or published");
       },
       { reuseDataDir: dataDir }
     );

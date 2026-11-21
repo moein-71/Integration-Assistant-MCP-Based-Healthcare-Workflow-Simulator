@@ -170,10 +170,10 @@ function workflowStatesContent(): string {
     "",
     "## States",
     "",
-    "- **DRAFT**: Initial state. MCP can revise and validate; submit moves it forward.",
+    "- **DRAFT**: Initial state. MCP can validate and submit it; a DRAFT workflow cannot be revised.",
     "- **PENDING_APPROVAL**: Awaiting a human decision. MCP tools are read-only here.",
     "- **APPROVED**: Human approval was recorded. NOT executed and NOT published.",
-    "- **REJECTED**: Human rejection was recorded (with a reason). MCP can revise it back to DRAFT.",
+    "- **REJECTED**: Human rejection was recorded (with a reason). Only a REJECTED workflow can be revised, and revise_workflow_draft returns it to DRAFT.",
     "",
     "## State Transition Diagram",
     "",
@@ -231,10 +231,16 @@ function workflowStatesContent(): string {
           }
         ],
         capabilities_by_state: {
-          DRAFT: ["create_workflow_draft", "validate_workflow", "revise_workflow_draft", "submit_workflow_for_approval"],
+          DRAFT: ["validate_workflow", "submit_workflow_for_approval"],
           PENDING_APPROVAL: [],
           APPROVED: ["get_workflow"],
           REJECTED: ["validate_workflow", "revise_workflow_draft"]
+        },
+        revision_transition: {
+          from: "REJECTED",
+          to: "DRAFT",
+          tool: "revise_workflow_draft",
+          note: "No other state can be revised; revision does not submit the workflow automatically."
         },
         execution_note: "APPROVED state means human approval only. Simulator does NOT execute or publish workflows."
       },

@@ -122,6 +122,23 @@ describe("Admin CLI decisions", () => {
     expect(inspect.stdout).toContain(`Approved by ${ACTOR}`);
   });
 
+  test("audit events survive a process restart and appear in inspect", async () => {
+    await runCli(dataDir, [
+      "reject",
+      "WF-SYN-002",
+      "--actor",
+      ACTOR,
+      "--reason",
+      "Synthetic demo audit reason"
+    ]);
+    const inspect = await runCli(dataDir, ["inspect", "WF-SYN-002"]);
+    expect(inspect.code).toBe(0);
+    expect(inspect.stdout).toContain("audit events:");
+    expect(inspect.stdout).toContain(`REJECTED by ${ACTOR}`);
+    expect(inspect.stdout).toContain("reason: Synthetic demo audit reason");
+    expect(await storedAuditEvents(dataDir)).toHaveLength(1);
+  });
+
   test("audit events append across multiple decisions", async () => {
     await setStatus(dataDir, "WF-SYN-001", "PENDING_APPROVAL");
     expect((await runCli(dataDir, ["approve", "WF-SYN-002", "--actor", ACTOR])).code).toBe(0);

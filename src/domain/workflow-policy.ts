@@ -10,8 +10,8 @@ export const WORKFLOW_TEMPLATES = ["INTAKE_HANDOFF", "LAB_REVIEW", "REFERRAL_COO
 export type WorkflowTemplate = (typeof WORKFLOW_TEMPLATES)[number];
 
 /**
- * Transitions available through MCP in this stage.
- * PENDING_APPROVAL -> APPROVED / REJECTED belongs to a future Admin CLI and is
+ * Transitions available through MCP.
+ * PENDING_APPROVAL -> APPROVED / REJECTED belongs to the separate Admin CLI and is
  * deliberately not exposed here.
  */
 export const ALLOWED_MCP_TRANSITIONS: Record<WorkflowStatus, readonly WorkflowStatus[]> = {
